@@ -1,65 +1,60 @@
-#!/usr/bin/perl
+#!usr/bin/perl
 
 use warnings;
 
-$path = './/*';
-
-@file_list = &scan_path($path);
-
-foreach $file(@file_list){
-	yoko2tate($file);
-}
-
-sub scan_path(){
-	my @files = glob($_[0]);
-	my $file = '';
-	my $len = 0;
-	my @file_list;
-	
-	foreach (@files){
-
-				if($_ =~ /csv/){
-					$len = length($_);
-					$file = substr($_,3,$len-3);
-					push(@file_list,$file);
-				}
-			}
-		
-	return @file_list;
-}
+yoko2tate($ARGV[0]);
 
 sub yoko2tate{
-	my $file = shift @_;
-	my ($tate,$yoko);
-	my @data_after;
-	my @line;
-	my $cell = '';
-	
-	open(FILE,$file);
-	my @data = <FILE>;
-	close FILE;
-	
-	$tate = @data;
-	my @data0 = split(',',$data[0]);
-	$yoko = @data0;
-	
-	for(my $i=0;$i<$yoko;$i++){
-		for(my $j=0;$j<$tate;$j++){
-			@line = split(',',$data[$j]);
-			if($j == 0){
-				$cell = $line[$i];
-			}
-			else{
-				$cell = $cell.",".$line[$i];
-			}
-		}
-		$cell .= "\n";
-		push @data_after,$cell;
-		$cell = undef;
-	}
-	open Output,">new_$file"or die $!;
-	print Output @data_after;
-	close Output;
+    my $file  = shift;
+    my @after = ();
+    my $max   = 0;
+    my $flag  = 0;
+    my $cnt   = 0;
 
+    open FILE,$file;
+    foreach my $line(<FILE>){
+        chomp($line);
+        $cnt += 1;
+        my @data = split(',',$line);
+        if($flag == 0){
+            @after = @data;
+            foreach(@after){
+                $_ .= ",";
+            }
+            $max   = @data;
+            $flag  = 1;
+            next;
+        }
+        if($max == scalar(@data)){
+            foreach(0..$max-1){
+                $after[$_] .= $data[$_].',';
+            }
+        }elsif($max > scalar(@data)){
+            foreach(0..scalar(@after)-1){
+                if($_ <= scalar(@data)-1){
+                    $after[$_] .= $data[$_].',';
+                }else{
+                    $after[$_] .= ',';
+                }
+            }
+        }else{
+            foreach my $n(0..scalar(@data)-1){
+                if($n < $max){
+                    $after[$n] .= $data[$n].',';
+                }else{
+                    push @after,"";
+                    foreach(0..$cnt-2){
+                        $after[$n] .= ',';
+                    }
+                    $after[$n] .= $data[$n].',';
+                }
+            }
+            $max = @data;
+        }
+    }
+    close FILE;
 
+    open  Output,">$file";
+    print Output join("\n",@after);
+    close Output;
 }
